@@ -1,98 +1,108 @@
-Button Tracking System (Go / React / Arduino)
+# Button Event Hub & IoT Tracker
 
-A complete IoT ecosystem for tracking physical button presses in real-time. This system uses an ESP32 for hardware triggers, a Go (Golang) backend for event processing and discovery, and a WebSocket-enabled web dashboard for live monitoring.
-🚀 System Overview
+A real-time monitoring system for wireless physical buttons using an **ESP32** hardware layer, a **Go (Golang)** backend, and a **WebSocket-based** web dashboard.
 
-    Automatic Discovery: The hardware finds the server dynamically via a UDP broadcast handshake—no hardcoded IPs required.
+[Image of an IoT architecture diagram showing UDP discovery, HTTP POST, and WebSocket communication]
 
-    Real-Time Sync: Button events are pushed from the Go server to the Web UI via WebSockets for sub-second latency.
+## 🚀 System Overview
 
-    Persistent State: The server handles incoming hardware triggers and broadcasts them to all connected web clients.
+The system is designed for high reliability and zero-configuration setup. It uses a decentralized discovery model so that hardware units can find the central server automatically without manual IP entry.
 
-🛠 Technical Specifications
+- **Dynamic Discovery:** Hardware finds the server via UDP broadcast on port **50090**.
+- **Real-Time Sync:** Events are pushed from the Go server to the dashboard via WebSockets for sub-second latency.
+- **Minimalist Hardware:** Optimized for the ESP32 using a single GPIO pin.
 
-1.  Backend (Go)
+---
 
-    HTTP Port: 3000
+## 🛠 Technical Specifications
 
-    Discovery Port: 50090 (UDP)
+### 1. Backend (Go)
 
-    Endpoints:
+- **HTTP Port**: `3000`.
+- **UDP Discovery Port**: `50090`.
+- **Endpoints**:
+  - `POST /button`: Receives hardware events via JSON.
+  - `GET /ws`: WebSocket stream for live web clients.
+  - `GET /`: Serves the dashboard UI via `dashHandler`.
+- **Asset Management**: Serves files from the relative directory `../public/index.html`.
 
-        POST /button: Receives hardware events.
+### 2. Hardware (ESP32)
 
-        GET /ws: WebSocket stream for web clients.
+- **Microcontroller**: ESP32 (Wi-Fi enabled).
+- **Button Pin**: `GPIO 2`.
+- **Operation**: On press (LOW signal), the device resolves the server via UDP and sends an HTTP POST.
 
-        GET /: Serves the dashboard UI.
+---
 
-    Static Assets: Served from ../public/index.html.
+## 📡 Communication Protocols
 
-2.  Hardware (ESP32)
-
-    Microcontroller: ESP32 (Wireless)
-
-    Button Pin: GPIO 2 (configured with INPUT_PULLUP).
-
-    Discovery Protocol: Sends "DISCOVER_BUTTON_HUB" to find the server.
-
-📡 Communication Protocol
-Discovery Handshake
+### Discovery Handshake
 
 The ESP32 discovers the Go server using the following flow:
 
-    Hardware broadcasts "DISCOVER_BUTTON_HUB" on UDP port 50090.
+1.  **Hardware** broadcasts `"DISCOVER_BUTTON_HUB"` to UDP port **50090**.
+2.  **Server** responds with a formatted string: `BUTTON_HUB|<IP_ADDRESS>|3000`.
+3.  **Hardware** parses this string to construct the dynamic URL: `http://<IP>:3000/button`.
 
-    Server responds with a string: BUTTON_HUB|<IP_ADDRESS>|3000.
+### Hardware Data Payload (JSON)
 
-    Hardware parses the IP and port to construct the dynamic URL: http://<IP>:3000/button.
+Hardware events are sent to the `/button` endpoint as follows:
 
-Data Payload
-
-Hardware events are sent as JSON POST requests:
-JSON
-
-```
+```json
 {
-"color": "red"
+  "color": "red"
 }
 ```
 
-The server automatically attaches a timestamp (nanoseconds) upon receipt before broadcasting to web clients.
-📁 Repository Structure
-Plaintext
+_Note: The server automatically generates a nanosecond-precision timestamp for the event upon receipt._
 
+### WebSocket Broadcast (JSON)
+
+The dashboard receives the processed event containing the server-side timestamp:
+
+```json
+{
+  "color": "red",
+  "timestamp": 1706981234000
+}
 ```
+
+---
+
+## 📁 Repository Structure
+
+```text
 .
 ├── server/
-│ ├── main.go          # Go server with Discovery & WebSockets
-| ├── go.sum
-│ └── go.mod
-└── button-code.cpp    # ESP32 Arduino C++ firmware (BTN_PIN 2)
+│   ├── main.go         # Go server with Discovery & WebSockets
+│   ├── go.sum
+│   └── go.mod
+├── button-code.cpp     # ESP32 Arduino C++ firmware (BTN_PIN 2)
 └── public/
-  └── index.html       # Live Web UI (served by Go)
+    └── index.html      # Live Dashboard UI
 ```
 
-🚦 Getting Started
+---
 
-1. Run the Backend
+## 🚦 Getting Started
 
-Ensure you have the gorilla/websocket package installed:
-Bash
+### 1. Setup the Backend
 
+Ensure you have the `gorilla/websocket` package installed:
+
+```bash
 go get github.com/gorilla/websocket
 cd backend
 go run main.go
+```
 
-2. Upload Firmware
+### 2. Flash the Firmware
 
-   Open firmware/button.ino in the Arduino IDE.
+1.  Open the Arduino code in the Arduino IDE.
+2.  Enter your Wi-Fi credentials (`ssid` and `password`).
+3.  Ensure `BTN_PIN` is set to `2`.
+4.  Select **ESP32 Dev Module** and upload.
 
-   Set your Wi-Fi SSID and Password.
+### 3. Open the Dashboard
 
-   Ensure BTN_PIN is set to 2.
-
-   Select ESP32 Dev Module and upload.
-
-3. Open Dashboard
-
-Visit http://localhost:3000 in your browser. The UI will connect to the WebSocket and wait for hardware triggers.
+Navigate to `http://localhost:3000` to see live events as buttons are pressed.
