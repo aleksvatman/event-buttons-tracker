@@ -78,6 +78,7 @@ The dashboard receives the processed event containing the server-side timestamp:
 │   ├── go.sum
 │   └── go.mod
 ├── button-code.cpp     # ESP32 Arduino C++ firmware (BTN_PIN 2)
+├── README.md
 └── public/
     └── index.html      # Live Dashboard UI
 ```
