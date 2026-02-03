@@ -129,63 +129,10 @@ func broadcastEvent(evt ButtonEvent) {
 
 // -- Dashboard minimal UI --
 func dashHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(dashboardHTML))
+	http.ServeFile(w, r, "../public/index.html")
 }
 
 // -- Timestamp helper --
 func makeTimestamp() int64 {
 	return (int64)(float64(1e3) * float64(float64((float64)(1e-6)*float64(float64((float64)(1e9)*float64(float64(1)))))))
 }
-
-const dashboardHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Live Button Status</title>
-  <style>
-    .button {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      margin: 20px;
-      display: inline-block;
-      opacity: 0.3;
-      transition: opacity 0.2s;
-    }
-    .active {
-      opacity: 1;
-      box-shadow: 0 0 20px black;
-    }
-    #container {
-      text-align: center;
-      margin-top: 50px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Live Button Status</h1>
-  <div id="container">
-    <div id="red" class="button" style="background-color: red;"></div>
-    <div id="green" class="button" style="background-color: green;"></div>
-    <div id="blue" class="button" style="background-color: blue;"></div>
-  </div>
-
-  <script>
-    const ws = new WebSocket("ws://" + location.host + "/ws");
-    ws.onmessage = (event) => {
-      console.log(event.data);
-      const e = JSON.parse(event.data);
-      for (const color of ["red", "green", "blue"]) {
-        const el = document.getElementById(color);
-        if (e.color === color) {
-          el.classList.add("active");
-        } else {
-          el.classList.remove("active");
-        }
-      }
-    };
-  </script>
-</body>
-</html>
-`
