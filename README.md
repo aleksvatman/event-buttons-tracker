@@ -73,14 +73,13 @@ The dashboard receives the processed event containing the server-side timestamp:
 
 ```text
 .
-├── server/
-│   ├── main.go         # Go server with Discovery & WebSockets
-│   ├── go.sum
-│   └── go.mod
-├── button-code.cpp     # ESP32 Arduino C++ firmware (BTN_PIN 2)
-├── README.md
-└── public/
-    └── index.html      # Live Dashboard UI
+├── main.go           # Server
+├── go.mod
+├── go.sum
+├── public/
+│   └── index.html    #  UI
+└── button-code.cpp   # Button code
+└── README.md
 ```
 
 ---

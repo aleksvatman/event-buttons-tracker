@@ -1,9 +1,10 @@
 package main
 
 import (
-	"embed" // Added: for embedding the frontend
+	"embed" 
 	"encoding/json"
 	"fmt"
+	"io/fs" 
 	"log"
 	"net"
 	"net/http"
@@ -13,8 +14,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// go:embed '../public/index.html'
-var staticContent embed.FS 
+//go:embed all:public
+var StaticContent embed.FS
 
 const (
 	DISCOVERY_PORT = 50090
@@ -33,14 +34,10 @@ var (
 )
 
 func main() {
-	// Start UDP broadcast discovery responder
 	go startDiscoveryResponder()
 
-	// HTTP handler for button POSTs
 	http.HandleFunc("/button", handleButton)
-	// WebSocket handler
 	http.HandleFunc("/ws", wsHandler)
-	// UI
 	http.HandleFunc("/", uiHandler)
 
 	fmt.Printf("Button hub: HTTP %d, Discovery %d\n", HTTP_PORT, DISCOVERY_PORT)
@@ -57,13 +54,12 @@ func handleButton(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	evt.Time = time.Now().UnixMilli();
+	evt.Time = time.Now().UnixMilli()
 	broadcastEvent(evt)
 	w.WriteHeader(200)
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
-// --- Discovery responder ---
 func startDiscoveryResponder() {
 	addr := net.UDPAddr{
 		Port: DISCOVERY_PORT,
@@ -88,7 +84,6 @@ func startDiscoveryResponder() {
 	}
 }
 
-// -- Helper: Get current machine local IP for response --
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err == nil {
@@ -96,11 +91,9 @@ func getOutboundIP() net.IP {
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
 		return localAddr.IP
 	}
-	// fallback
 	return net.ParseIP("127.0.0.1")
 }
 
-// -- WebSocket broadcasting --
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -134,10 +127,16 @@ func broadcastEvent(evt ButtonEvent) {
 
 // -- UI --
 func uiHandler(w http.ResponseWriter, r *http.Request) {
-	// Reads the file from the internal embedded binary data instead of the disk
-	data, err := staticContent.ReadFile("../public/index.html")
+	// Merged logic: strips the "public" prefix so we can access "index.html" directly
+	publicFS, err := fs.Sub(StaticContent, "public")
 	if err != nil {
-		// Log the actual error to console so you can see what path it expected
+		log.Printf("FS Sub error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data, err := fs.ReadFile(publicFS, "index.html")
+	if err != nil {
 		log.Printf("Embed error: %v", err)
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
