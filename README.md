@@ -51,22 +51,26 @@ Data Payload
 Hardware events are sent as JSON POST requests:
 JSON
 
+```
 {
 "color": "red"
 }
+```
 
 The server automatically attaches a timestamp (nanoseconds) upon receipt before broadcasting to web clients.
 📁 Repository Structure
 Plaintext
 
+```
 .
 ├── server/
 │ ├── main.go # Go server with Discovery & WebSockets
-| ├── go.sum  
+| ├── go.sum
 │ └── go.mod
 └── button-code.cpp # ESP32 Arduino C++ firmware (BTN_PIN 2)
 └── public/
 └── index.html # Live Web UI (served by Go)
+```
 
 🚦 Getting Started
 
