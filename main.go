@@ -1,15 +1,21 @@
 package main
 
 import (
+	"embed" 
 	"encoding/json"
 	"fmt"
+	"io/fs" 
 	"log"
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
+
+//go:embed all:public
+var StaticContent embed.FS
 
 const (
 	DISCOVERY_PORT = 50090
@@ -28,15 +34,11 @@ var (
 )
 
 func main() {
-	// Start UDP broadcast discovery responder
 	go startDiscoveryResponder()
 
-	// HTTP handler for button POSTs
 	http.HandleFunc("/button", handleButton)
-	// WebSocket handler
 	http.HandleFunc("/ws", wsHandler)
-	// Dashboard UI
-	http.HandleFunc("/", dashHandler)
+	http.HandleFunc("/", uiHandler)
 
 	fmt.Printf("Button hub: HTTP %d, Discovery %d\n", HTTP_PORT, DISCOVERY_PORT)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", HTTP_PORT), nil))
@@ -52,7 +54,7 @@ func handleButton(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	evt.Time = makeTimestamp()
+	evt.Time = time.Now().UnixMilli()
 	broadcastEvent(evt)
 	w.WriteHeader(200)
 	w.Write([]byte(`{"status":"ok"}`))
@@ -127,12 +129,22 @@ func broadcastEvent(evt ButtonEvent) {
 	}
 }
 
-// -- Dashboard minimal UI --
-func dashHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "../public/index.html")
-}
+// -- UI --
+func uiHandler(w http.ResponseWriter, r *http.Request) {
+	// strips the "public" prefix so we can access "index.html" directly
+	publicFS, err := fs.Sub(StaticContent, "public")
+	if err != nil {
+		log.Printf("FS Sub error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
-// -- Timestamp helper --
-func makeTimestamp() int64 {
-	return (int64)(float64(1e3) * float64(float64((float64)(1e-6)*float64(float64((float64)(1e9)*float64(float64(1)))))))
+	data, err := fs.ReadFile(publicFS, "index.html")
+	if err != nil {
+		log.Printf("Embed error: %v", err)
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(data)
 }
