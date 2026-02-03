@@ -64,12 +64,12 @@ Plaintext
 ```
 .
 ├── server/
-│ ├── main.go # Go server with Discovery & WebSockets
+│ ├── main.go          # Go server with Discovery & WebSockets
 | ├── go.sum
 │ └── go.mod
-└── button-code.cpp # ESP32 Arduino C++ firmware (BTN_PIN 2)
+└── button-code.cpp    # ESP32 Arduino C++ firmware (BTN_PIN 2)
 └── public/
-└── index.html # Live Web UI (served by Go)
+  └── index.html       # Live Web UI (served by Go)
 ```
 
 🚦 Getting Started
