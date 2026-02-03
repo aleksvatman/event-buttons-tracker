@@ -60,6 +60,7 @@ func handleButton(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
+// --- Discovery responder ---
 func startDiscoveryResponder() {
 	addr := net.UDPAddr{
 		Port: DISCOVERY_PORT,
@@ -84,6 +85,7 @@ func startDiscoveryResponder() {
 	}
 }
 
+// -- Helper: Get current machine local IP for response --
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err == nil {
@@ -91,9 +93,11 @@ func getOutboundIP() net.IP {
 		localAddr := conn.LocalAddr().(*net.UDPAddr)
 		return localAddr.IP
 	}
+	// fallback
 	return net.ParseIP("127.0.0.1")
 }
 
+// -- WebSocket broadcasting --
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -127,7 +131,7 @@ func broadcastEvent(evt ButtonEvent) {
 
 // -- UI --
 func uiHandler(w http.ResponseWriter, r *http.Request) {
-	// Merged logic: strips the "public" prefix so we can access "index.html" directly
+	// strips the "public" prefix so we can access "index.html" directly
 	publicFS, err := fs.Sub(StaticContent, "public")
 	if err != nil {
 		log.Printf("FS Sub error: %v", err)
